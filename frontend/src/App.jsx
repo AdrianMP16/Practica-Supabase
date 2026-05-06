@@ -1,49 +1,77 @@
-import { useEffect, useState } from "react";
-import ProductoForm from "./components/ProductoForm";
-import ProductoList from "./components/ProductoList";
-import {
-  obtenerProductos,
-  crearProducto,
-  eliminarProducto
-} from "./services/productosService";
+import { useEffect, useState } from 'react';
+import LoginForm from './components/LoginForm';
+import ProductoForm from './components/ProductoForm';
+import ProductoList from './components/ProductoList';
+import { escucharSesion, logout, obtenerSesion } from './services/authService';
+import { actualizarProducto, crearProducto, eliminarProducto, obtenerProductos } from './services/productosService';
+import './styles.css';
 
-function App() {
+export default function App() {
+  const [session, setSession] = useState(null);
   const [productos, setProductos] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [mensaje, setMensaje] = useState('');
+
+  useEffect(() => {
+    obtenerSesion().then(setSession);
+    const { data } = escucharSesion((sesionActual) => setSession(sesionActual));
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   const cargarProductos = async () => {
-    setLoading(true);
-    const data = await obtenerProductos();
-    setProductos(data);
-    setLoading(false);
+    try {
+      setMensaje('Cargando productos...');
+      const data = await obtenerProductos();
+      setProductos(data);
+      setMensaje('');
+    } catch (error) {
+      setMensaje(error.message);
+    }
   };
 
   useEffect(() => {
-    cargarProductos();
-  }, []);
+    if (session) cargarProductos();
+    else setProductos([]);
+  }, [session]);
 
   const manejarCrear = async (producto) => {
     await crearProducto(producto);
-    cargarProductos();
+    await cargarProductos();
   };
 
   const manejarEliminar = async (id) => {
+    if (!confirm('¿Eliminar producto?')) return;
     await eliminarProducto(id);
-    cargarProductos();
+    await cargarProductos();
+  };
+
+  const manejarActualizar = async (id, cambios) => {
+    await actualizarProducto(id, cambios);
+    await cargarProductos();
   };
 
   return (
     <main>
-      <h1>Inventario Fullstack</h1>
-      <ProductoForm onCrear={manejarCrear} />
-      {loading ? (
-        <p>Cargando...</p>
+      <header className="hero">
+        <h1>Supabase Auth + PostgreSQL</h1>
+        <p>Ejercicio fullstack con formulario de usuario y clave.</p>
+      </header>
+
+      {!session ? (
+        <LoginForm />
       ) : (
-        <ProductoList productos={productos} onEliminar={manejarEliminar} />
+        <>
+          <section className="card session-card">
+            <p><strong>Usuario:</strong> {session.user.email}</p>
+            <div className="row">
+              <button onClick={cargarProductos}>Recargar</button>
+              <button className="danger" onClick={logout}>Cerrar sesión</button>
+            </div>
+          </section>
+          <ProductoForm onCrear={manejarCrear} />
+          {mensaje && <p className="message">{mensaje}</p>}
+          <ProductoList productos={productos} onEliminar={manejarEliminar} onActualizar={manejarActualizar} />
+        </>
       )}
     </main>
   );
 }
-
-
-export default App;

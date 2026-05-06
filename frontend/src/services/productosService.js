@@ -1,22 +1,26 @@
-const API_URL = "/api/productos";
+import { obtenerToken } from './authService';
 
-export async function obtenerProductos() {
-  const res = await fetch(API_URL);
-  return res.json();
-}
+const API_URL = '/api/productos';
 
-export async function crearProducto(producto) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(producto)
+async function request(url, options = {}) {
+  const token = await obtenerToken();
+  if (!token) throw new Error('No existe una sesión activa');
+
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
+    },
   });
-  return res.json();
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.mensaje || 'Error en la API');
+  return data;
 }
 
-export async function eliminarProducto(id) {
-  const res = await fetch(`${API_URL}/${id}`, {
-    method: "DELETE"
-  });
-  return res.json();
-}
+export const obtenerProductos = () => request(API_URL);
+export const crearProducto = (producto) => request(API_URL, { method: 'POST', body: JSON.stringify(producto) });
+export const actualizarProducto = (id, producto) => request(`${API_URL}/${id}`, { method: 'PUT', body: JSON.stringify(producto) });
+export const eliminarProducto = (id) => request(`${API_URL}/${id}`, { method: 'DELETE' });
