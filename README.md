@@ -6,3 +6,6 @@
 **Capturas de funcionamiento de Login con firebase**
 
 <img width="1920" height="1032" alt="image" src="https://github.com/user-attachments/assets/d0b6f342-efa9-4332-87a2-fe17fd0b494f" />
+
+
+Nelson Erazo - Mateo Piedra
